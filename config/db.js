@@ -16,7 +16,7 @@ db.connect(function (err) {
       console.log("Client table created");
     }
   );
-
+db.end();
   console.log("Database Connected!");
 });
 
