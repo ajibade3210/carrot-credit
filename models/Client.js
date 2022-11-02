@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const getObjKey = require('../config/helper');
 
 class Client {
   constructor(firstname, lastname, amount, accountType) {
@@ -56,13 +57,17 @@ class Client {
     return db.execute(sql);
   }
 
-  static findByIdAndCredit(id, credit) {
-    let sql = `UPDATE client SET amount=amount+${credit} WHERE id = ${id};`;
+  static async findByIdAndCredit(id, credit) {
+    let [col, _] = await this.findById(id);
+    const {fund,key} = getObjKey(col);
+    const currentAmount = fund + credit;
+    let sql = `UPDATE client SET amount = JSON_SET(amount, '$.${key}',${currentAmount}) WHERE id = ${id};`;
     return db.execute(sql);
   }
 
-  static findByIdAndDebit(id, add) {
-    let sql = `UPDATE client SET amount=amount - ${add} WHERE id = ${id};`;
+  static async findByIdAndDebit(id, debit,key, fund) {
+    const currentAmount = fund - debit;
+    let sql = `UPDATE client SET amount = JSON_SET(amount, '$.${key}',${currentAmount}) WHERE id = ${id};`;
     return db.execute(sql);
   }
 }

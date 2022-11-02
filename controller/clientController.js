@@ -1,15 +1,16 @@
 const Client = require("../models/Client");
-
+const getObjKey = require("../config/helper")
 
 exports.getAllClients = async (req, res, next) => {
     try {
-        const [clients, _] = await Client.findAll();
+        const [col, _] = await Client.findAll();
         res.status(200).json({
             success: true,
-            count: clients.length,
-            clients
+            count: col.length,
+            clients: col
          });
     }catch(error){
+      res.status(401).send(error.message)
         console.log(error);
         next(error);
     }
@@ -30,8 +31,13 @@ exports.createNewClient = async (req, res, next) => {
 exports.getClientById = async (req, res, next) => {
     try {
         let id = req.params.id;
-        let [client, _] = await Client.findById(id);
-      res.status(200).json({ success: true, clients: client[0] });
+        let [col, _] = await Client.findById(id);
+      const amount = getObjKey(col);
+      let clients = {
+          ...col[0],
+          ...amount
+      }
+      res.status(200).json({ success: true, clients });
     } catch (error) {
       console.log(error);
       next(error);
@@ -44,11 +50,11 @@ exports.credit = async (req, res, next) => {
       let id = req.params.id;
       await Client.findByIdAndCredit(id, credit);
 
-      let [client, _] = await Client.findById(id);
+      let [col, _] = await Client.findById(id);
       res.status(201).json({
         success: true,
-        clients:client[0]
-    });
+        clients: col[0],
+      });
     } catch (error) {
       console.log(error);
       next(error);
@@ -57,24 +63,24 @@ exports.credit = async (req, res, next) => {
 
 exports.debit = async (req, res, next) => {
     try {
-        let { debit } = req.body;
-        let id = req.params.id;
-        let [client, _] = await Client.findById(id);
+      let { debit } = req.body;
+      let id = req.params.id;
+      let [col, _] = await Client.findById(id);
+      const amount = getObjKey(col);
 
-        // Check Current Funds
-        if(debit > client[0].amount) {
-            return res.status(401).json({
-              success: true,
-              message: `${client[0].firstname} ${client[0].lastname} has insufficient balance`,
-            });
-        }
-
-        await Client.findByIdAndDebit(id, debit);
-
-        res.status(201).json({
-        success: true,
-        clients: client[0],
+      // Check Current Funds
+      if (debit > amount.fund) {
+        return res.status(401).json({
+          success: true,
+          message: `${col[0].firstname} ${col[0].lastname} has insufficient balance`,
         });
+      }
+
+      await Client.findByIdAndDebit(id, debit, amount.key, amount.fund);
+      res.status(201).json({
+        success: true,
+        clients: col[0],
+      });
     } catch (error) {
       console.log(error);
       next(error);
